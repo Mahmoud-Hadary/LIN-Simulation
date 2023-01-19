@@ -1,74 +1,10 @@
-'''
-#Read from CSV
-#df = pd.read_csv(r'Nodes.csv')
-
-#Open a new window to Show animation
-from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QTableWidget, QTableWidgetItem, QLabel
-import sys
-import openpyxl
-
-
-class AnotherWindow(QWidget):
-    """
-    This "window" is a QWidget. If it has no parent, it
-    will appear as a free-floating window as we want.
-    """
-    def __init__(self):
-        super().__init__()
-        layout = QVBoxLayout()
-        self.label = QLabel("Another Window")
-        layout.addWidget(self.label)
-        self.setLayout(layout)
-
-
-class Main(QWidget):
-    def __init__(self):
-        super(Main, self).__init__()
-        self.setWindowTitle("Load Excel data to QTableWidget")
-        
-        layout = QVBoxLayout()
-        self.setLayout(layout)
-        
-        self.table_widget = QTableWidget()
-        layout.addWidget(self.table_widget)
-        self.send_button = QPushButton('Send', self)
-        self.send_button.clicked.connect(self.show_new_window)
-        self.load_data()
-        
-    def load_data(self):
-        path = "Nodes.xlsx"
-        workbook = openpyxl.load_workbook(path)
-        sheet = workbook.active
-        
-        self.table_widget.setRowCount(sheet.max_row)
-        self.table_widget.setColumnCount(sheet.max_column)
-        
-        list_values = list(sheet.values)
-        self.table_widget.setHorizontalHeaderLabels(list_values[0])
-        
-        row_index = 0
-        for value_tuple in list_values[1:]:
-            col_index = 0
-            for value in value_tuple:
-                self.table_widget.setItem(row_index , col_index, QTableWidgetItem(str(value)))
-                col_index += 1
-            row_index += 1
-    def show_new_window(self, checked):
-        w = AnotherWindow()
-        w.show()
-
-
-if __name__ == '__main__':
-    app = QApplication(sys.argv)
-    window = Main()
-    window.showMaximized()
-    app.exec_()
-'''
-import openpyxl
 import sys
 from PyQt5 import QtCore, QtGui, QtWidgets
-from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QTableWidget, QTableWidgetItem, QLabel,QPushButton
+from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QTableWidget, QTableWidgetItem, QLabel,QPushButton, QFileDialog
 from PyQt5.QtGui import QIcon
+import pandas as pd
+import xlwt
+import os
 class Anim_Window(QWidget):
     def __init__(self):
         super().__init__()
@@ -78,8 +14,53 @@ class Anim_Window(QWidget):
         #self.setFixedSize(610,480)
         self.show()
 
-class LoadTable(QTableWidget):
+class LoadTable(QTableWidget,QWidget):
+    def switch_window(self):
+        self.savefile()
+        self.hide()
+        self.second_window = Anim_Window()
+        self.second_window.show()
+    def savefile(self):
+        filename = str(QFileDialog.getSaveFileName(self, 'Save File', '', ".xls(*.xls)"))    
+        wbk = xlwt.Workbook()
+        self.sheet = wbk.add_sheet("sheet", cell_overwrite_ok=True)
+        self.add2()
+        if(os.path.exists(filename)):
+            os.remove(filename)
+        wbk.save(filename)    
+
+    def add2(self):
+        row = 0
+        col = 0         
+        for i in range(self.columnCount()):
+            for x in range(self.rowCount()):
+                try:             
+                    teext = str(self.item(row, col).text())
+                    self.sheet.write(row, col, teext)
+                    row += 1
+                except AttributeError:
+                    row += 1
+            row = 0
+            col += 1
+        '''
+    def Export_to_Excel(self):
+        columnHeaders = []
+        # create column header list
+        for j in range(self.model().columnCount()):
+            columnHeaders.append(self.horizontalHeaderItem(j).text())
+
+        df = pd.DataFrame(columns=columnHeaders)
+
+        # create dataframe object recordset
+        for row in range(self.rowCount()):
+            for col in range(self.columnCount()):
+                df.at[row, columnHeaders[col]] = self.item(row, col).text()
+
+        df.to_excel('Dummy File XYZ.xlsx', index=False)
+        print('Excel file exported')
+        '''
     def __init__(self, parent=None):
+        
         super(LoadTable, self).__init__(1, 4, parent)
         self.setFont(QtGui.QFont("Helvetica", 10, QtGui.QFont.Normal, italic=False))   
         headertitle = ("Frame ID","Master","Slave A","Slave B")
@@ -100,6 +81,7 @@ class LoadTable(QTableWidget):
         self.setCellWidget(0, 2, combox_lay_B)
         self.setCellWidget(0, 1, combox_lay_C)
         self.cellChanged.connect(self._cellclicked)
+        
 
 
     @QtCore.pyqtSlot(int, int)
@@ -128,25 +110,21 @@ class LoadTable(QTableWidget):
 
 
 class ThirdTabLoads(QWidget):
-    def switch_window(self):
-        self.hide()
-        self.second_window = Anim_Window()
-        self.second_window.show()
-        #export data to excel
-        coloumnHeader = []
 
     def __init__(self, parent=None):
         super(ThirdTabLoads, self).__init__(parent)    
 
         table = LoadTable()
+        #layout = QVBoxLayout()
+        #self.setLayout(layout)
 
         add_button = QtWidgets.QPushButton("Add")
         add_button.clicked.connect(table._addrow)
-
-        #Save_button = QtWidgets.QPushButton("Save")
-        self.Save_button = QPushButton('&Export',clicked=lambda:'')
-
-        #Save_button.clicked.connect(self.switch_window)  #saves the data and transfers it into an excel sheet then opens a new window
+        
+        Save_button = QtWidgets.QPushButton("Save")
+        #self.Save_button = QPushButton('&Export',clicked=self.switch_window)
+        #layout.addWidget(self.Save_button)
+        Save_button.clicked.connect(table.switch_window)  #saves the data and transfers it into an excel sheet then opens a new window
 
         delete_button = QtWidgets.QPushButton("Delete")
         delete_button.clicked.connect(table._removerow)
