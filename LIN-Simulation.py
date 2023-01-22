@@ -5,6 +5,8 @@ from PyQt5.QtGui import QIcon
 import pandas as pd
 import xlwt
 import os
+coloumn_count = 0
+
 class Anim_Window(QWidget):
     def __init__(self):
         super().__init__()
@@ -20,28 +22,38 @@ class LoadTable(QTableWidget,QWidget):
         self.hide()
         self.second_window = Anim_Window()
         self.second_window.show()
+
     def savefile(self):
-        filename = str(QFileDialog.getSaveFileName(self, 'Save File', '', ".xls(*.xls)"))    
+        filename = str(QFileDialog.getSaveFileName(self, 'Save File', '', ".csv(*.csv)"))
+        filename = filename.split(",")
+        filename=filename[0]
+        filename=filename[2:-1]
+        print(filename)
         wbk = xlwt.Workbook()
         self.sheet = wbk.add_sheet("sheet", cell_overwrite_ok=True)
         self.add2()
         if(os.path.exists(filename)):
             os.remove(filename)
-        wbk.save(filename)    
+        wbk.save(filename) 
 
     def add2(self):
         row = 0
         col = 0         
         for i in range(self.columnCount()):
-            for x in range(self.rowCount()):
-                try:             
+            for x in range(self.rowCount()):   
+                try:     
                     teext = str(self.item(row, col).text())
+                    if col > 0:
+                        if teext != "Recieved" and teext != "Dont Care" and teext != "Transfer":
+                            QtWidgets.QMessageBox.critical(self, "Invalid Input", "The Input for the Nodes should be either Recieved, Dont Care, or Transfer")
                     self.sheet.write(row, col, teext)
                     row += 1
+                
                 except AttributeError:
                     row += 1
             row = 0
-            col += 1
+            col +=1
+        #content = self.combo_box.currentText()
         '''
     def Export_to_Excel(self):
         columnHeaders = []
@@ -71,15 +83,7 @@ class LoadTable(QTableWidget,QWidget):
 
         self.setSelectionMode(QtWidgets.QAbstractItemView.NoSelection)
         self.setColumnWidth(0, 130)
-        combox_lay_A = QtWidgets.QComboBox(self)
-        combox_lay_A.addItems(["Recieve","Transfer","Dont Care"])
-        combox_lay_B = QtWidgets.QComboBox(self)
-        combox_lay_B.addItems(["Recieve","Transfer","Dont Care"])
-        combox_lay_C = QtWidgets.QComboBox(self)
-        combox_lay_C.addItems(["Recieve","Transfer","Dont Care"])
-        self.setCellWidget(0, 3, combox_lay_A)
-        self.setCellWidget(0, 2, combox_lay_B)
-        self.setCellWidget(0, 1, combox_lay_C)
+
         self.cellChanged.connect(self._cellclicked)
         
 
@@ -93,15 +97,7 @@ class LoadTable(QTableWidget,QWidget):
     def _addrow(self):
         rowcount = self.rowCount()
         self.insertRow(rowcount)
-        combox_add_A = QtWidgets.QComboBox(self)
-        combox_add_A.addItems(["Recieve","Transfer","Dont Care"])
-        self.setCellWidget(rowcount, 3, combox_add_A)
-        combox_add_B = QtWidgets.QComboBox(self)
-        combox_add_B.addItems(["Recieve","Transfer","Dont Care"])
-        self.setCellWidget(rowcount, 2, combox_add_B)
-        combox_add_C = QtWidgets.QComboBox(self)
-        combox_add_C.addItems(["Recieve","Transfer","Dont Care"])
-        self.setCellWidget(rowcount, 1, combox_add_C)
+ 
 
     @QtCore.pyqtSlot()
     def _removerow(self):
